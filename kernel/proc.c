@@ -139,8 +139,8 @@ found:
   }
 
   // Initializing attributes linked to scheduling algorithms.
-  p->time = 0;
   p->timeslice = 0;
+  p->time = 0;
   p->tau = 3;
 
   // Set up new context to start executing at forkret,
@@ -463,10 +463,11 @@ scheduler(void)
     // to release its lock and then reacquire it
     // before jumping back to us.
     acquire(&sched_queues.heap_lock);
-    p = get();      // Process will have its lock acquired when it is fetched from the scheduler
+    p = get();                          // Process will have its lock acquired when it is fetched from the scheduler
     release(&sched_queues.heap_lock);
     if (p == 0) continue;
     p->state = RUNNING;
+    p->start_tick = ticks;              // Will be used for measuring running time
     c->proc = p;
     swtch(&c->context, &p->context);
 

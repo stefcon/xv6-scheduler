@@ -97,11 +97,11 @@ struct proc {
   int start_tick;              // tick value when the process has started
 
   // SJF properties
-  int tau;                     // Approximation for the next CPU burst length
-  int time;                    // Execution time in the current CPU burst
+  uint tau;                     // Approximation for the next CPU burst length
+  uint time;                    // Execution time in the current CPU burst
 
   // CFS properties
-  int sched_time;              // Time process spent inside of scheduler
+  int sched_start;              // Time process spent inside of scheduler
 
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process

@@ -2,8 +2,10 @@
 // Created by os on 1/3/22.
 //
 #include "param.h"
-#include "proc.h"
+#include "defs.h"
+#include "types.h"
 #include "schedulers.h"
+#include "proc.h"
 
 void swap(struct heapnd* a, struct heapnd* b) {
     struct heapnd tmp = *b;
@@ -54,6 +56,8 @@ void delete_root(struct heapnd array[], int* size) {
     }
 }
 
+// --------------------------------------------------------------------
+
 // Instance that is responsible for holding RUNNABLE processes
 struct scheduling_queues sched_queues;
 
@@ -62,7 +66,7 @@ unsigned current_algorithm = 0;
 
 // Value that determines if SJF scheduling algorithm will
 // behave preemptively or not
-unsigned preemptive_sjf;
+unsigned preemptive_sjf = 0;
 
 // Constant used for exponential weighted averaging in SJF.
 int alfa;
@@ -89,13 +93,33 @@ struct proc* get() {
 // Picks next process for execution based on SJF algorithm
 // and its approximated CPU burst.
 struct proc* get_sjf(){
-    return 0;
+    struct proc *p, *next_p;
+    uint min_tau = ~0U;
+    for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if (p->tau < min_tau) {
+            min_tau = p;
+            next_p = p;
+        }
+        release(&p->lock);
+    }
+    acquire(&next_p->lock);
+    return next_p;
 }
 
 // Return process to RUNNABLE state, taking care
 // of the SJF logic and arithmetic calculations.
 void put_sjf(struct proc* proc){
-
+    uint curr_burst = calculate_length(proc->start_tick, ticks);
+    proc->time += curr_burst;
+    if (proc->state == SLEEPING) {
+        // Process came out of suspension, new approximation has to be made
+        proc->tau = (alfa * proc->time) / 100 + ((100 - alfa) * proc->tau) / 100;
+        proc->time = 0;
+    }
+    acquire(&proc->lock);
+    proc->state = RUNNABLE;
+    release(&proc->lock);
 }
 
 // CFS
@@ -106,4 +130,18 @@ struct proc* get_cfs(){
 // CFS
 void put_cfs(struct proc* proc){
 
+}
+
+// --------------------------------------------------------------------
+
+// Helper function used to calculate lengths of time between current tick
+// and some saved starting tick
+uint calculate_length(uint start, uint end) {
+    if (start <= end) {
+        return end - start;
+    }
+    else {
+        // Overflow occurred, so the result needs to be corrected
+        return (~0U - start) + end;
+    }
 }

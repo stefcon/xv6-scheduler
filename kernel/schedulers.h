@@ -6,6 +6,7 @@
 struct proc;
 struct spinlock;
 
+// --------------------------------------------------------------------
 // Min-heap struct and functions
 struct heapnd {
     int pr;             // Value that we are prioritising by
@@ -25,11 +26,7 @@ struct scheduling_queues {
 };
 
 extern struct scheduling_queues sched_queues;
-
-extern unsigned current_algorithm;
-
-extern unsigned preemptive_sjf;
-extern int alfa;
+// --------------------------------------------------------------------
 
 void put(struct proc* proc);
 struct proc* get();
@@ -39,4 +36,6 @@ void put_sjf(struct proc* proc);
 
 struct proc* get_cfs();
 void put_cfs(struct proc* proc);
+// --------------------------------------------------------------------
+uint calculate_length(uint start, uint end);
 #endif //XV6_OS2_SCHEDULERS_H

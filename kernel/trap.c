@@ -79,7 +79,7 @@ usertrap(void)
   // give up the CPU if this is a timer interrupt
   // and the timeslice ran out.
   if(which_dev == 2){
-      if (p->timeslice != 0 && p->timeslice + p->start_tick == ticks)
+      if (!current_algorithm && preemptive_sjf || p->timeslice != 0 && p->timeslice + p->start_tick == ticks)
           yield();
   }
 
@@ -155,7 +155,8 @@ kerneltrap()
   // give up the CPU if this is a timer interrupt
   // and the timeslice ran out.
   if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING){
-      if (myproc()->timeslice != 0 && myproc()->timeslice + myproc()->start_tick == ticks)
+      if (!current_algorithm && preemptive_sjf ||
+            myproc()->timeslice != 0 && myproc()->timeslice + myproc()->start_tick == ticks)
           yield();
   }
 
@@ -164,7 +165,7 @@ kerneltrap()
   w_sepc(sepc);
   w_sstatus(sstatus);
 }
-// TODO: Dodati merenje vremena provedenog u scheduleru, azuriranje proteklog vremena provedenog na samom procesoru
+
 void
 clockintr()
 {
