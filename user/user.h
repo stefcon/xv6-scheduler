@@ -23,6 +23,9 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+// New system calls for changing between SJF and CFS algorithms
+int setsjf(int, int);
+int setcfs();
 
 
 // ulib.c

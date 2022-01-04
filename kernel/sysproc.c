@@ -95,3 +95,22 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+
+uint64
+sys_setsjf(void)
+{
+    int preemptive;
+    int alfa;
+
+    if(argint(0, &preemptive) < 0 || argaddr(1, &alfa) < 0)
+        return -1;
+
+    return setsjf(preemptive, alfa);
+}
+
+uint64
+sys_setcfs(void)
+{
+    return setcfs();
+}

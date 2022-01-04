@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "schedulers.h"
 
 struct cpu cpus[NCPU];
 
@@ -135,6 +136,10 @@ found:
     return 0;
   }
 
+  // Initializing attributes linked to scheduling algorithms.
+  p->time = 0;
+  p->tau = 3;
+
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
@@ -242,7 +247,9 @@ userinit(void)
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
-  p->state = RUNNABLE;
+  //p->state = RUNNABLE;
+  put(p);
+
 
   release(&p->lock);
 }
@@ -312,7 +319,8 @@ fork(void)
   release(&wait_lock);
 
   acquire(&np->lock);
-  np->state = RUNNABLE;
+  //np->state = RUNNABLE;
+  put(np);
   release(&np->lock);
 
   return pid;
@@ -491,13 +499,30 @@ sched(void)
   mycpu()->intena = intena;
 }
 
+// Changes scheduling algorithm to SJF approximation.
+int
+setsjf(int preemptive, int alfa_const)
+{
+    current_algorithm = 0;
+    preemptive_sjf = preemptive;
+    alfa = alfa_const;
+}
+
+// Changes scheduling algorithm to simplified CFS algorithm.
+int
+setcfs()
+{
+    current_algorithm = 1;
+}
+
 // Give up the CPU for one scheduling round.
 void
 yield(void)
 {
   struct proc *p = myproc();
   acquire(&p->lock);
-  p->state = RUNNABLE;
+  //p->state = RUNNABLE;
+  put(p);
   sched();
   release(&p->lock);
 }
@@ -565,7 +590,8 @@ wakeup(void *chan)
     if(p != myproc()){
       acquire(&p->lock);
       if(p->state == SLEEPING && p->chan == chan) {
-        p->state = RUNNABLE;
+        //p->state = RUNNABLE;
+        put(p);
       }
       release(&p->lock);
     }
@@ -586,7 +612,8 @@ kill(int pid)
       p->killed = 1;
       if(p->state == SLEEPING){
         // Wake process from sleep().
-        p->state = RUNNABLE;
+        //p->state = RUNNABLE;
+        put(p);
       }
       release(&p->lock);
       return 0;
