@@ -55,6 +55,8 @@ procinit(void)
       initlock(&p->lock, "proc");
       p->kstack = KSTACK((int) (p - proc));
   }
+  // Initialize heap_lock for the scheduling struct
+  initlock(sched_queues.heap_lock, "heap_lock");
 }
 
 // Must be called with interrupts disabled,
@@ -138,6 +140,7 @@ found:
 
   // Initializing attributes linked to scheduling algorithms.
   p->time = 0;
+  p->timeslice = 0;
   p->tau = 3;
 
   // Set up new context to start executing at forkret,
@@ -453,22 +456,26 @@ scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
+//    for(p = proc; p < &proc[NPROC]; p++) {
+//      acquire(&p->lock);
+//      if(p->state == RUNNABLE) {
+    // Switch to chosen process.  It is the process's job
+    // to release its lock and then reacquire it
+    // before jumping back to us.
+    acquire(&sched_queues.heap_lock);
+    p = get();      // Process will have its lock acquired when it is fetched from the scheduler
+    release(&sched_queues.heap_lock);
+    if (p == 0) continue;
+    p->state = RUNNING;
+    c->proc = p;
+    swtch(&c->context, &p->context);
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-      }
-      release(&p->lock);
-    }
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    c->proc = 0;
+      //}
+    release(&p->lock);
+    //}
   }
 }
 
@@ -499,6 +506,7 @@ sched(void)
   mycpu()->intena = intena;
 }
 
+// TODO: Pobrinuti se da se prioriteti u redovima promene ako se desila promena samog algortima pri pozivu
 // Changes scheduling algorithm to SJF approximation.
 int
 setsjf(int preemptive, int alfa_const)
