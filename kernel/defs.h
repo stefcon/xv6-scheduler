@@ -8,6 +8,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct heapnd;
 
 // bio.c
 void            binit(void);
@@ -105,7 +106,7 @@ int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             setsjf(int, int);
-int             setcfs(int, int);
+int             setcfs();
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -188,6 +189,17 @@ void            virtio_disk_intr(void);
 extern unsigned current_algorithm;
 extern unsigned preemptive_sjf;
 extern int alfa;
+void swap(struct heapnd*, struct heapnd*);
+void heapify(struct heapnd *, int, int);
+void insert(struct heapnd *, int*, struct proc* , int);
+void delete_root(struct heapnd *, int*);
+void put(struct proc*);
+struct proc* get();
+struct proc* get_sjf();
+void put_sjf(struct proc*);
+struct proc* get_cfs();
+void put_cfs(struct proc*);
+uint calculate_length(uint, uint);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

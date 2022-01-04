@@ -103,7 +103,7 @@ sys_setsjf(void)
     int preemptive;
     int alfa;
 
-    if(argint(0, &preemptive) < 0 || argaddr(1, &alfa) < 0)
+    if(argint(0, &preemptive) < 0 || argint(1, &alfa) < 0)
         return -1;
 
     return setsjf(preemptive, alfa);

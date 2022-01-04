@@ -56,7 +56,7 @@ procinit(void)
       p->kstack = KSTACK((int) (p - proc));
   }
   // Initialize heap_lock for the scheduling struct
-  initlock(sched_queues.heap_lock, "heap_lock");
+  initlock(&sched_queues.heap_lock, "heap_lock");
 }
 
 // Must be called with interrupts disabled,
@@ -250,7 +250,9 @@ userinit(void)
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
-  //p->state = RUNNABLE;
+  // To enable first switch
+  // p->timeslice = 1;
+  // p->state = RUNNABLE;
   put(p);
 
 
@@ -515,6 +517,7 @@ setsjf(int preemptive, int alfa_const)
     current_algorithm = 0;
     preemptive_sjf = preemptive;
     alfa = alfa_const;
+    return 0;
 }
 
 // Changes scheduling algorithm to simplified CFS algorithm.
@@ -522,6 +525,7 @@ int
 setcfs()
 {
     current_algorithm = 1;
+    return 0;
 }
 
 // Give up the CPU for one scheduling round.

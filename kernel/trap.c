@@ -79,7 +79,7 @@ usertrap(void)
   // give up the CPU if this is a timer interrupt
   // and the timeslice ran out.
   if(which_dev == 2){
-      if (!current_algorithm && preemptive_sjf || p->timeslice != 0 && p->timeslice + p->start_tick == ticks)
+      if ((!current_algorithm && preemptive_sjf) || (calculate_length(p->start_tick, ticks) >= p->timeslice))
           yield();
   }
 
@@ -152,11 +152,12 @@ kerneltrap()
     panic("kerneltrap");
   }
 
+  struct proc *p = myproc();
   // give up the CPU if this is a timer interrupt
   // and the timeslice ran out.
-  if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING){
-      if (!current_algorithm && preemptive_sjf ||
-            myproc()->timeslice != 0 && myproc()->timeslice + myproc()->start_tick == ticks)
+  if(which_dev == 2 && p != 0 && myproc()->state == RUNNING){
+      if ((!current_algorithm && preemptive_sjf) ||
+              (myproc()->timeslice != 0 && calculate_length(p->start_tick, ticks) >= p->timeslice))
           yield();
   }
 

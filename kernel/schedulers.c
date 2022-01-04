@@ -1,9 +1,12 @@
 //
 // Created by os on 1/3/22.
 //
-#include "param.h"
-#include "defs.h"
 #include "types.h"
+#include "param.h"
+#include "memlayout.h"
+#include "riscv.h"
+#include "spinlock.h"
+#include "defs.h"
 #include "schedulers.h"
 #include "proc.h"
 
@@ -69,7 +72,7 @@ unsigned current_algorithm = 0;
 unsigned preemptive_sjf = 0;
 
 // Constant used for exponential weighted averaging in SJF.
-int alfa;
+int alfa = 50;
 
 void put(struct proc* proc) {
     if (current_algorithm == 0) {
@@ -93,17 +96,18 @@ struct proc* get() {
 // Picks next process for execution based on SJF algorithm
 // and its approximated CPU burst.
 struct proc* get_sjf(){
-    struct proc *p, *next_p;
+    struct proc *p, *next_p = 0;
     uint min_tau = ~0U;
     for(p = proc; p < &proc[NPROC]; p++) {
         acquire(&p->lock);
-        if (p->tau < min_tau) {
-            min_tau = p;
+        if (p->state == RUNNABLE &&p->tau < min_tau) {
+            min_tau = p->tau;
             next_p = p;
         }
         release(&p->lock);
     }
-    acquire(&next_p->lock);
+    if (next_p != 0)
+        acquire(&next_p->lock);
     return next_p;
 }
 
@@ -117,9 +121,7 @@ void put_sjf(struct proc* proc){
         proc->tau = (alfa * proc->time) / 100 + ((100 - alfa) * proc->tau) / 100;
         proc->time = 0;
     }
-    acquire(&proc->lock);
     proc->state = RUNNABLE;
-    release(&proc->lock);
 }
 
 // CFS
@@ -138,10 +140,10 @@ void put_cfs(struct proc* proc){
 // and some saved starting tick
 uint calculate_length(uint start, uint end) {
     if (start <= end) {
-        return end - start;
+        return end - start + 1;
     }
     else {
         // Overflow occurred, so the result needs to be corrected
-        return (~0U - start) + end;
+        return (~0U - start) + end + 1;
     }
 }
