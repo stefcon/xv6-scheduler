@@ -83,6 +83,8 @@ void            panic(char*) __attribute__((noreturn));
 void            printfinit(void);
 
 // proc.c
+extern int active_proc_num;
+extern struct spinlock active_lock;
 int             cpuid(void);
 void            exit(int);
 int             fork(void);
@@ -190,16 +192,21 @@ extern unsigned current_algorithm;
 extern unsigned preemptive_sjf;
 extern int alfa;
 void swap(struct heapnd*, struct heapnd*);
-void heapify(struct heapnd *, int, int);
+void heapify_min(struct heapnd*, int, int);
+void heapify_max(struct heapnd*, int, int);
+void heapsort(struct heapnd*, int);
 void insert(struct heapnd *, int*, struct proc* , int);
 void delete_root(struct heapnd *, int*);
+void initsched(void);
 void put(struct proc*);
-struct proc* get();
-struct proc* get_sjf();
-void put_sjf(struct proc*);
-struct proc* get_cfs();
-void put_cfs(struct proc*);
+struct proc* get(int);
+//struct proc* get_sjf();
+//void put_sjf(struct proc*);
+//struct proc* get_cfs();
+//void put_cfs(struct proc*);
 uint calculate_length(uint, uint);
+int min_index(int*, int, int*);
+//int max_index(int*, int, int*);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

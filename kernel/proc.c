@@ -16,6 +16,9 @@ struct proc *initproc;
 int nextpid = 1;
 struct spinlock pid_lock;
 
+int active_proc_num = 0;
+struct spinlock active_lock;
+
 extern void forkret(void);
 static void freeproc(struct proc *p);
 
@@ -51,12 +54,11 @@ procinit(void)
   
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
+  initlock(&active_lock, "active_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->kstack = KSTACK((int) (p - proc));
   }
-  // Initialize heap_lock for the scheduling struct
-  initlock(&sched_queues.heap_lock, "heap_lock");
 }
 
 // Must be called with interrupts disabled,
@@ -123,6 +125,11 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
+  // Update the number of active processes on all CPUs
+  acquire(&active_lock);
+  active_proc_num++;
+  release(&active_lock);
+
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -142,6 +149,7 @@ found:
   p->timeslice = 0;
   p->time = 0;
   p->tau = 3;
+  p->affinity = -1;
 
   // Set up new context to start executing at forkret,
   // which returns to user space.
@@ -172,6 +180,9 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  acquire(&active_lock);
+  active_proc_num--;        // Decrease the number of active processes on all CPUs
+  release(&active_lock);
 }
 
 // Create a user page table for a given process,
@@ -452,7 +463,8 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  
+  int cpu_id = cpuid();
+
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
@@ -465,7 +477,7 @@ scheduler(void)
     // to release its lock and then reacquire it
     // before jumping back to us.
     acquire(&sched_queues.heap_lock);
-    p = get();                          // Process will have its lock acquired when it is fetched from the scheduler
+    p = get(cpu_id);                          // Process will have its lock acquired when it is fetched from the scheduler
     release(&sched_queues.heap_lock);
     if (p == 0) continue;
     p->state = RUNNING;
@@ -509,22 +521,42 @@ sched(void)
   mycpu()->intena = intena;
 }
 
-// TODO: Pobrinuti se da se prioriteti u redovima promene ako se desila promena samog algortima pri pozivu
-// Changes scheduling algorithm to SJF approximation.
+// Changes scheduling algorithm to SJF approximation and updates all the priorities in the heaps.
 int
 setsjf(int preemptive, int alfa_const)
 {
+    acquire(&sched_queues.heap_lock);
+    // If previous algorithm was CFS, we have to update the priorities
+    if (current_algorithm == 1) {
+        for (int i = 0; i < NCPU; i++) {
+            for (int j = 0; i < NPROC; j++) {
+                sched_queues.heaps[i][j].pr = sched_queues.heaps[i][j].p->tau;
+            }
+            heapsort(sched_queues.heaps[i], sched_queues.procnums[i]);
+        }
+    }
     current_algorithm = 0;
     preemptive_sjf = preemptive;
     alfa = alfa_const;
+    release(&sched_queues.heap_lock);
     return 0;
 }
 
-// Changes scheduling algorithm to simplified CFS algorithm.
+// Changes scheduling algorithm to simplified CFS algorithm and updates all the priorities in the heaps.
 int
 setcfs()
 {
+    acquire(&sched_queues.heap_lock);
+    if (current_algorithm == 1) {
+        for (int i = 0; i < NCPU; i++) {
+            for (int j = 0; i < NPROC; j++) {
+                sched_queues.heaps[i][j].pr = sched_queues.heaps[i][j].p->time;
+            }
+            heapsort(sched_queues.heaps[i], sched_queues.procnums[i]);
+        }
+    }
     current_algorithm = 1;
+    release(&sched_queues.heap_lock);
     return 0;
 }
 

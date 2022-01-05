@@ -93,15 +93,14 @@ struct proc {
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
   // Scheduling attributes
+  int affinity;                // Last processor the process has been running on
   int timeslice;               // Allotted time for the process to run, 0 if it is unlimited
   int start_tick;              // tick value when the process has started
 
-  // SJF properties
   uint tau;                     // Approximation for the next CPU burst length
   uint time;                    // Execution time in the current CPU burst
 
-  // CFS properties
-  int sched_start;              // Time process spent inside of scheduler
+  int sched_tick;              // Time process spent inside of scheduler
 
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process

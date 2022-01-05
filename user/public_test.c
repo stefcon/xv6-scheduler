@@ -74,8 +74,10 @@ main(int argc, char *argv[])
             break;
         if(pid == 0) {
             if (i < proc_num / 3) {
+                printf("Ulazim u p1\n");
                 p1(i, length);
             } else {
+                printf("ulazim u p2\n");
                 p2(i, length / 4);
             }
             exit(0);
