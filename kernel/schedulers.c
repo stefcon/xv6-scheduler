@@ -115,12 +115,16 @@ void initsched(void) {
     for (int i = 0; i < NCPU; i++) {
         sched_queues.procnums[i] = 0;
     }
+    sched_queues.max_ind = 0;
+    sched_queues.min_ind = 0;
+    sched_queues.max_size = 0;
+    sched_queues.min_size = 0;
 }
 
 void put(struct proc* proc){
-    push_off();
+    //push_off();
     int curr_ticks = ticks;
-    pop_off();
+    //pop_off();
     if (proc->affinity != -1) {
         //acquire(&tickslock);
         uint curr_burst = calculate_length(proc->start_tick, curr_ticks);
@@ -180,9 +184,9 @@ struct proc* get(int cpu_id) {
 
     acquire(&next_p->lock);
 
-    push_off();
+    //push_off();
     int curr_ticks = ticks;
-    pop_off();
+    //pop_off();
 
     if (current_algorithm == 0) {
         // Unless we request preemptive SJF by using a system call, every process has unlimited CPU time
