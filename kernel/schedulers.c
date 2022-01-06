@@ -99,7 +99,7 @@ void delete_root(struct heapnd *array, int* size) {
 struct scheduling_queues sched_queues;
 
 // Default scheduling algo for the kernel is set to be SJF
-unsigned current_algorithm = 1;
+unsigned current_algorithm = 0;
 
 // Value that determines if SJF scheduling algorithm will
 // behave preemptively or not
@@ -159,36 +159,44 @@ void put(struct proc* proc){
 
 struct proc* get(int cpu_id) {
     acquire(&sched_queues.heap_lock);
+    struct proc *next_p;
     if (sched_queues.procnums[cpu_id] == 0) {
-        // Maybe I will do some load balancing here as well, but first I'll have to see if everything else works
-        release(&sched_queues.heap_lock);
-        return 0;
-    }
-    else {
-        struct proc *next_p = sched_queues.heaps[cpu_id][0].p;
-        delete_root(sched_queues.heaps[cpu_id], &sched_queues.procnums[cpu_id]);
-        release(&sched_queues.heap_lock);
-
-        acquire(&next_p->lock);
-
-        push_off();
-        int curr_ticks = ticks;
-        pop_off();
-
-        if (current_algorithm == 0) {
-            // Unless we request preemptive SJF by using a system call, every process has unlimited CPU time
-            next_p->timeslice = 0;
+        int max_id;
+        if (max_index(sched_queues.procnums, NCPU, &max_id) <= 1 && cpus[cpu_id].proc == 0){
+            release(&sched_queues.heap_lock);
+            return 0;
         }
         else {
-            acquire(&active_lock);
-            int curr_active = active_proc_num;
-            release(&active_lock);
-
-            next_p->timeslice = (int)(calculate_length(proc->sched_tick, curr_ticks) / curr_active);
+            next_p = sched_queues.heaps[max_id][0].p;
+            next_p->affinity = cpu_id;
+            delete_root(sched_queues.heaps[max_id], &sched_queues.procnums[max_id]);
         }
-        next_p->start_tick = curr_ticks;              // Will be used for measuring running time
-        return next_p;
     }
+    else {
+        next_p = sched_queues.heaps[cpu_id][0].p;
+        delete_root(sched_queues.heaps[cpu_id], &sched_queues.procnums[cpu_id]);
+    }
+    release(&sched_queues.heap_lock);
+
+    acquire(&next_p->lock);
+
+    push_off();
+    int curr_ticks = ticks;
+    pop_off();
+
+    if (current_algorithm == 0) {
+        // Unless we request preemptive SJF by using a system call, every process has unlimited CPU time
+        next_p->timeslice = 0;
+    }
+    else {
+        acquire(&active_lock);
+        int curr_active = active_proc_num;
+        release(&active_lock);
+
+        next_p->timeslice = (int)(calculate_length(proc->sched_tick, curr_ticks) / curr_active);
+    }
+    next_p->start_tick = curr_ticks;              // Will be used for measuring running time
+    return next_p;
 }
 
 // --------------------------------------------------------------------
@@ -218,14 +226,14 @@ int min_index(int *array, int n, int *min_ind){
 }
 
 // Potentially needed for load balancing if one processor has nothing to run
-//int max_index(int *array, int n, int *max_ind){
-//    long max_value = -(1 << 31);
-//    *max_ind = 0;
-//    for (int i = 0; i < n; i++) {
-//        if (max_value < array[i]) {
-//            max_value = array[i];
-//            *max_ind = i;
-//        }
-//    }
-//    return (int)max_value;
-//}
+int max_index(int *array, int n, int *max_ind){
+    long max_value = -((long)1 << 31);
+    *max_ind = 0;
+    for (int i = 0; i < n; i++) {
+        if (max_value < array[i]) {
+            max_value = array[i];
+            *max_ind = i;
+        }
+    }
+    return (int)max_value;
+}

@@ -206,7 +206,7 @@ struct proc* get(int);
 //void put_cfs(struct proc*);
 uint calculate_length(uint, uint);
 int min_index(int*, int, int*);
-//int max_index(int*, int, int*);
+int max_index(int*, int, int*);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
