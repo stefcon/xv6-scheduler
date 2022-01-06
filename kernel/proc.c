@@ -148,7 +148,7 @@ found:
   // Initializing attributes linked to scheduling algorithms.
   p->timeslice = 0;
   p->time = 0;
-  p->tau = 3;
+  p->tau = 0;
   p->affinity = -1;
 
   // Set up new context to start executing at forkret,
@@ -463,7 +463,7 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  int cpu_id = cpuid();
+
 
   c->proc = 0;
   for(;;){
@@ -473,7 +473,7 @@ scheduler(void)
     // Switch to chosen process.  It is the process's job
     // to release its lock and then reacquire it
     // before jumping back to us.
-    p = get(cpu_id);                          // Process will have its lock acquired when it is fetched from the scheduler
+    p = get();                          // Process will have its lock acquired when it is fetched from the scheduler
     if (p == 0) continue;
 
     p->state = RUNNING;
@@ -522,10 +522,10 @@ setsjf(int preemptive, int alfa_const)
     // If previous algorithm was CFS, we have to update the priorities
     if (current_algorithm == 1) {
         for (int i = 0; i < NCPU; i++) {
-            for (int j = 0; i < NPROC; j++) {
+            for (int j = 0; j < sched_queues.procnums[i]; j++) {
                 sched_queues.heaps[i][j].pr = sched_queues.heaps[i][j].p->tau;
             }
-            heapsort(sched_queues.heaps[i], sched_queues.procnums[i]);
+            create_min_heap(sched_queues.heaps[i], sched_queues.procnums[i]);
         }
     }
     current_algorithm = 0;
@@ -542,10 +542,10 @@ setcfs()
     acquire(&sched_queues.heap_lock);
     if (current_algorithm == 1) {
         for (int i = 0; i < NCPU; i++) {
-            for (int j = 0; i < NPROC; j++) {
+            for (int j = 0; j < sched_queues.procnums[i]; j++) {
                 sched_queues.heaps[i][j].pr = sched_queues.heaps[i][j].p->time;
             }
-            heapsort(sched_queues.heaps[i], sched_queues.procnums[i]);
+            create_min_heap(sched_queues.heaps[i], sched_queues.procnums[i]);
         }
     }
     current_algorithm = 1;

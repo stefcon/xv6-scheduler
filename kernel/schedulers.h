@@ -9,7 +9,5 @@ struct scheduling_queues {
     struct spinlock heap_lock;  // Mutual exclusion for accessing local heap
     int procnums[NCPU];         // Num of processes inside of queues
     struct heapnd heaps[NCPU][NPROC];  // Local queue for cpu processes
-    int max_size, min_size, max_ind, min_ind;   // Used for load balancing more efficiently
+    int cpu_misses[NCPU];       // Used for load balancing
 };
-
-extern struct scheduling_queues sched_queues;

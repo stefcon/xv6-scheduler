@@ -56,6 +56,11 @@ void heapify_max(struct heapnd *array, int size, int i) {
     }
 }
 
+void create_min_heap(struct heapnd *array, int n) {
+    for (int i = n / 2 - 1; i >= 0; i--)
+        heapify_min(array, n, i);
+}
+
 void heapsort(struct heapnd *array, int n) {
     for (int i = n / 2 - 1; i >= 0; i--)
         heapify_max(array, n, i);
@@ -109,16 +114,26 @@ unsigned preemptive_sjf = 0;
 int alfa = 50;
 
 void initsched(void) {
-    // Initialize heap_lock for the scheduling struct
-    initlock(&sched_queues.heap_lock, "heap_lock");
     // Initializing number of processes inside each queue
     for (int i = 0; i < NCPU; i++) {
         sched_queues.procnums[i] = 0;
+        sched_queues.cpu_misses[i] = 0;
     }
-    sched_queues.max_ind = 0;
-    sched_queues.min_ind = 0;
-    sched_queues.max_size = 0;
-    sched_queues.min_size = 0;
+    // Initialize scheduler's spinlock
+    initlock(&sched_queues.heap_lock, "heap_lock");
+}
+
+void aging(void) {
+    // Decrease the priority of all processes that are currently in the scheduler.
+    // The more they spend in the scheduler, the more their priority will decrease,
+    // and eventually they will be picked for execution.
+    acquire(&sched_queues.heap_lock);
+    for (int i = 0; i < NCPU; i++) {
+        for (int j = 0; j < sched_queues.procnums[i]; j++) {
+            sched_queues.heaps[i][j].pr--;
+        }
+    }
+    release(&sched_queues.heap_lock);
 }
 
 void put(struct proc* proc){
@@ -140,11 +155,6 @@ void put(struct proc* proc){
     proc->sched_tick = curr_ticks;   // Save the moment process arrived to scheduler
 
     acquire(&sched_queues.heap_lock);
-    if (proc->affinity == -1) {
-        // Search for the proccesor with the smallest number of ready processes
-        min_index(sched_queues.procnums, NCPU, &proc->affinity);
-    }
-    release(&sched_queues.heap_lock);
     int priority;
     if (current_algorithm == 0) {
         // In SJF, we set tau to be the criteria of choosing next process
@@ -156,24 +166,36 @@ void put(struct proc* proc){
         priority = proc->time;
     }
     proc->state = RUNNABLE;
-    acquire(&sched_queues.heap_lock);
+    if (proc->affinity == -1) {
+        // Search for the proccesor with the smallest number of ready processes
+        min_index(sched_queues.procnums, NCPU, &proc->affinity);
+    }
     insert(sched_queues.heaps[proc->affinity], &sched_queues.procnums[proc->affinity], proc, priority);
     release(&sched_queues.heap_lock);
 }
 
-struct proc* get(int cpu_id) {
+struct proc* get() {
     acquire(&sched_queues.heap_lock);
     struct proc *next_p;
+    int cpu_id = cpuid();
     if (sched_queues.procnums[cpu_id] == 0) {
-        int max_id;
-        if (max_index(sched_queues.procnums, NCPU, &max_id) <= 1 && cpus[cpu_id].proc == 0){
-            release(&sched_queues.heap_lock);
-            return 0;
+        if (++sched_queues.cpu_misses[cpu_id] >= 5) {
+            sched_queues.cpu_misses[cpu_id] = 0;
+            int max_id;
+            max_index(sched_queues.procnums, NCPU, &max_id);
+            if (sched_queues.procnums[max_id] <= 1){
+                release(&sched_queues.heap_lock);
+                return 0;
+            }
+            else {
+                next_p = sched_queues.heaps[max_id][0].p;
+                next_p->affinity = cpu_id;
+                delete_root(sched_queues.heaps[max_id], &sched_queues.procnums[max_id]);
+            }
         }
         else {
-            next_p = sched_queues.heaps[max_id][0].p;
-            next_p->affinity = cpu_id;
-            delete_root(sched_queues.heaps[max_id], &sched_queues.procnums[max_id]);
+            release(&sched_queues.heap_lock);
+            return 0;
         }
     }
     else {

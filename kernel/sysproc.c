@@ -107,18 +107,6 @@ sys_setsjf(void)
         return -1;
 
     return setsjf(preemptive, alfa);
-//    if (argstr(0, &name, MAXPATH) < 0)
-//        return -1;
-//
-//    if (strncmp(name, "sjf", MAXPATH) == 0) {
-//        if(argint(0, &preemptive) < 0 || argint(1, &alfa) < 0)
-//            return -1;
-//        return setsjf(preemptive, alfa);
-//    }
-//    else if (strncmp(name, "cfs", MAXPATH)== 0){
-//        return setcfs();
-//    }
-//    return -1;
 }
 
 uint64

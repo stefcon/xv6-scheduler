@@ -155,9 +155,9 @@ kerneltrap()
   struct proc *p = myproc();
   // give up the CPU if this is a timer interrupt
   // and the timeslice ran out.
-  if(which_dev == 2 && p != 0 && myproc()->state == RUNNING){
+  if(which_dev == 2 && p != 0 && p->state == RUNNING){
       if ((current_algorithm == 0 && preemptive_sjf) ||
-              (myproc()->timeslice != 0 && calculate_length(p->start_tick, ticks) >= p->timeslice))
+              (p->timeslice != 0 && calculate_length(p->start_tick, ticks) >= p->timeslice))
           yield();
   }
 
@@ -214,6 +214,8 @@ devintr()
 
     if(cpuid() == 0){
       clockintr();
+      if (ticks % 100 == 0)
+          aging();
     }
     
     // acknowledge the software interrupt by clearing
