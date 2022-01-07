@@ -83,6 +83,7 @@ main(int argc, char *argv[])
         printf("Napravio jos dete %d\n", pid);
     }
 
+    printf("Ulazim u wait peltju\n");
     for (int i = 0; i < proc_num; i++) {
         wait(0);
     }

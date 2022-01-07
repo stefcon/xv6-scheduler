@@ -79,7 +79,8 @@ usertrap(void)
   // give up the CPU if this is a timer interrupt
   // and the timeslice ran out.
   if(which_dev == 2){
-      if ((current_algorithm == 0 && preemptive_sjf) || (calculate_length(p->start_tick, ticks) >= p->timeslice))
+      if ((current_algorithm == 0 && preemptive_sjf) ||
+          (p->timeslice != 0 && ++p->curr_time >= p->timeslice))
           yield();
   }
 
@@ -157,7 +158,7 @@ kerneltrap()
   // and the timeslice ran out.
   if(which_dev == 2 && p != 0 && p->state == RUNNING){
       if ((current_algorithm == 0 && preemptive_sjf) ||
-              (p->timeslice != 0 && calculate_length(p->start_tick, ticks) >= p->timeslice))
+              (p->timeslice != 0 && ++p->curr_time >= p->timeslice))
           yield();
   }
 
@@ -214,7 +215,7 @@ devintr()
 
     if(cpuid() == 0){
       clockintr();
-      if (ticks % 100 == 0)
+      if (ticks % 15 == 0)
           aging();
     }
     

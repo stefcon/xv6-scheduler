@@ -137,14 +137,9 @@ void aging(void) {
 }
 
 void put(struct proc* proc){
-    //push_off();
-    int curr_ticks = ticks;
-    //pop_off();
+    acquire(&sched_queues.heap_lock);
     if (proc->affinity != -1) {
-        //acquire(&tickslock);
-        uint curr_burst = calculate_length(proc->start_tick, curr_ticks);
-        //release(&tickslock);
-        proc->time += curr_burst;
+        proc->time += proc->curr_time;
     }
     if (proc->state == SLEEPING) {
         // Process came out of suspension, new approximation for tau has to be made
@@ -152,9 +147,9 @@ void put(struct proc* proc){
         proc->time = 0;
     }
 
+    int curr_ticks = ticks;
     proc->sched_tick = curr_ticks;   // Save the moment process arrived to scheduler
 
-    acquire(&sched_queues.heap_lock);
     int priority;
     if (current_algorithm == 0) {
         // In SJF, we set tau to be the criteria of choosing next process
@@ -167,7 +162,7 @@ void put(struct proc* proc){
     }
     proc->state = RUNNABLE;
     if (proc->affinity == -1) {
-        // Search for the proccesor with the smallest number of ready processes
+        // Search for the processor with the smallest number of ready processes
         min_index(sched_queues.procnums, NCPU, &proc->affinity);
     }
     insert(sched_queues.heaps[proc->affinity], &sched_queues.procnums[proc->affinity], proc, priority);
@@ -188,6 +183,7 @@ struct proc* get() {
                 return 0;
             }
             else {
+                //acquire(&sched_queues.heaps[max_id][0].p->lock);
                 next_p = sched_queues.heaps[max_id][0].p;
                 next_p->affinity = cpu_id;
                 delete_root(sched_queues.heaps[max_id], &sched_queues.procnums[max_id]);
@@ -199,16 +195,12 @@ struct proc* get() {
         }
     }
     else {
+        //acquire(&sched_queues.heaps[cpu_id][0].p->lock);
         next_p = sched_queues.heaps[cpu_id][0].p;
         delete_root(sched_queues.heaps[cpu_id], &sched_queues.procnums[cpu_id]);
     }
     release(&sched_queues.heap_lock);
-
     acquire(&next_p->lock);
-
-    //push_off();
-    int curr_ticks = ticks;
-    //pop_off();
 
     if (current_algorithm == 0) {
         // Unless we request preemptive SJF by using a system call, every process has unlimited CPU time
@@ -219,9 +211,10 @@ struct proc* get() {
         int curr_active = active_proc_num;
         release(&active_lock);
 
+        int curr_ticks = ticks;
         next_p->timeslice = (int)(calculate_length(proc->sched_tick, curr_ticks) / curr_active);
     }
-    next_p->start_tick = curr_ticks;              // Will be used for measuring running time
+    next_p->curr_time = 0;              // Will be used for measuring running time
     return next_p;
 }
 
@@ -240,7 +233,7 @@ uint calculate_length(uint start, uint end){
 }
 
 int min_index(int *array, int n, int *min_ind){
-    long min_value = ((long)1 << 31) - 1;
+    long min_value = 2147483647;
     *min_ind = 0;
     for (int i = 0; i < n; i++) {
         if (min_value > array[i]) {
@@ -253,7 +246,7 @@ int min_index(int *array, int n, int *min_ind){
 
 // Potentially needed for load balancing if one processor has nothing to run
 int max_index(int *array, int n, int *max_ind){
-    long max_value = -((long)1 << 31);
+    long max_value = -2147483648;
     *max_ind = 0;
     for (int i = 0; i < n; i++) {
         if (max_value < array[i]) {
