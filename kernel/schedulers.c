@@ -113,6 +113,9 @@ unsigned preemptive_sjf = 0;
 // Constant used for exponential weighted averaging in SJF.
 int alfa = 50;
 
+// To make updating curr_time safe for multicore system
+struct spinlock update_time_lock;
+
 void initsched(void) {
     // Initializing number of processes inside each queue
     for (int i = 0; i < NCPU; i++) {
@@ -121,6 +124,7 @@ void initsched(void) {
     }
     // Initialize scheduler's spinlock
     initlock(&sched_queues.heap_lock, "heap_lock");
+    initlock(&update_time_lock, "update_time_lock");
 }
 
 void aging(void) {
@@ -139,7 +143,9 @@ void aging(void) {
 void put(struct proc* proc){
     acquire(&sched_queues.heap_lock);
     if (proc->affinity != -1) {
+        acquire(&update_time_lock);
         proc->time += proc->curr_time;
+        release(&update_time_lock);
     }
     if (proc->state == SLEEPING) {
         // Process came out of suspension, new approximation for tau has to be made

@@ -192,6 +192,7 @@ extern unsigned current_algorithm;
 extern unsigned preemptive_sjf;
 extern int alfa;
 extern struct scheduling_queues sched_queues;
+extern struct spinlock update_time_lock;
 void swap(struct heapnd*, struct heapnd*);
 void heapify_min(struct heapnd*, int, int);
 void heapify_max(struct heapnd*, int, int);
