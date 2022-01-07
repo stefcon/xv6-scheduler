@@ -148,7 +148,7 @@ found:
   // Initializing attributes linked to scheduling algorithms.
   p->timeslice = 0;
   p->time = 0;
-  p->curr_time = -1;
+  p->curr_time = 0;
   p->sched_tick = 0;
   p->tau = 0;
   p->affinity = -1;

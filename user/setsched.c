@@ -17,9 +17,9 @@ main(int argc, char *argv[])
             printf("Argument error\n");
             exit(-1);
         }
-        alfa = atoi(argv[2]);
-        preemptive = atoi(argv[3]);
-        exit(setsjf(alfa, preemptive));
+        preemptive = atoi(argv[2]);
+        alfa = atoi(argv[3]);
+        exit(setsjf(preemptive, alfa));
     }
     else if (strcmp(argv[1], "cfs") == 0) {
         exit(setcfs());

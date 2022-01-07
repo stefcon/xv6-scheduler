@@ -80,7 +80,7 @@ main(int argc, char *argv[])
             }
             exit(0);
         }
-        printf("Napravio jos dete %d\n", pid);
+        printf("Napravio dete %d\n", pid);
     }
 
     printf("Ulazim u wait peltju\n");
@@ -88,6 +88,7 @@ main(int argc, char *argv[])
         wait(0);
     }
 
+    printf("Izlazim iz porgrama\n");
     exit(0);
 }
 

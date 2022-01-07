@@ -215,8 +215,8 @@ devintr()
 
     if(cpuid() == 0){
       clockintr();
-      if (ticks % 15 == 0)
-          aging();
+      if (ticks % 10 == 0)
+         aging();
     }
     
     // acknowledge the software interrupt by clearing

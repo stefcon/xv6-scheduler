@@ -143,7 +143,7 @@ void put(struct proc* proc){
     }
     if (proc->state == SLEEPING) {
         // Process came out of suspension, new approximation for tau has to be made
-        proc->tau = (alfa * proc->time) / 100 + ((100 - alfa) * proc->tau) / 100;
+        proc->tau = ((alfa * proc->time) + ((100 - alfa) * proc->tau)) / 100;
         proc->time = 0;
     }
 
@@ -213,6 +213,7 @@ struct proc* get() {
 
         int curr_ticks = ticks;
         next_p->timeslice = (int)(calculate_length(proc->sched_tick, curr_ticks) / curr_active);
+        if (next_p->timeslice == 0) next_p->timeslice = 1;  // Preventing process to run without limits
     }
     next_p->curr_time = 0;              // Will be used for measuring running time
     return next_p;
