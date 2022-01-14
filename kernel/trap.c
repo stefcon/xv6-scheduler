@@ -80,8 +80,9 @@ usertrap(void)
   // give up the CPU if this is a timer interrupt
   // and the timeslice ran out.
   if(which_dev == 2){
+      ++p->curr_time;
       if ((current_algorithm == 0 && preemptive_sjf) ||
-          (p->timeslice != 0 && ++p->curr_time >= p->timeslice))
+          (p->timeslice != 0 && p->curr_time >= p->timeslice))
           yield();
   }
 
@@ -158,8 +159,9 @@ kerneltrap()
   // give up the CPU if this is a timer interrupt
   // and the timeslice ran out.
   if(which_dev == 2 && p != 0 && p->state == RUNNING){
+      ++p->curr_time;
       if ((current_algorithm == 0 && preemptive_sjf) ||
-              (p->timeslice != 0 && ++p->curr_time >= p->timeslice))
+              (p->timeslice != 0 && p->curr_time >= p->timeslice))
           yield();
   }
 
