@@ -94,13 +94,14 @@ struct proc {
   int pid;                     // Process ID
   // Scheduling attributes
   int affinity;                // Last processor the process has been running on
-  int timeslice;               // Allotted time for the process to run, 0 if it is unlimited
-  int curr_time;               // Values used for comparing to the time slice to know when to switch context
+  uint timeslice;               // Allotted time for the process to run, 0 if it is unlimited
+  uint curr_time;               // Values used for comparing to the time slice to know when to switch context
 
   uint tau;                    // Approximation for the next CPU burst length
   uint time;                   // Execution time in the current CPU burst
 
-  int sched_tick;              // Time process spent inside of scheduler
+  uint sched_time;              // Time process spent inside of scheduler
+  uint sched_tick;              // Tick value when process entered the scheduler with put() operation
 
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process

@@ -161,6 +161,7 @@ void put(struct proc* proc){
         // Process came out of suspension, new approximation for tau has to be made
         proc->tau = ((alfa * proc->time) + ((100 - alfa) * proc->tau)) / 100;
         proc->time = 0;
+        proc->sched_time = 0;
     }
 
     int curr_ticks = ticks;
@@ -228,7 +229,8 @@ struct proc* get() {
         release(&active_lock);
 
         int curr_ticks = ticks;
-        next_p->timeslice = (int)(calculate_length(proc->sched_tick, curr_ticks) / curr_active);
+        next_p->sched_time += calculate_length(next_p->sched_tick, curr_ticks);
+        next_p->timeslice = next_p->sched_time / curr_active;
         if (next_p->timeslice == 0) next_p->timeslice = 1;  // Preventing process to run without limits
     }
     next_p->curr_time = 0;              // Will be used for measuring running time
@@ -241,11 +243,11 @@ struct proc* get() {
 // and some saved starting tick
 uint calculate_length(uint start, uint end){
     if (start <= end) {
-        return end - start + 1;
+        return end - start;
     }
     else {
         // Overflow occurred, so the result needs to be corrected
-        return (~0U - start) + end + 1;
+        return (~0U - start) + end;
     }
 }
 
