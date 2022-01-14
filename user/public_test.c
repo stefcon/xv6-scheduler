@@ -88,7 +88,7 @@ main(int argc, char *argv[])
         wait(0);
     }
 
-    printf("Izlazim iz porgrama\n");
+    printf("Izlazim iz programa\n");
     exit(0);
 }
 

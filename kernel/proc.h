@@ -97,8 +97,8 @@ struct proc {
   int timeslice;               // Allotted time for the process to run, 0 if it is unlimited
   int curr_time;               // Values used for comparing to the time slice to know when to switch context
 
-  uint tau;                     // Approximation for the next CPU burst length
-  uint time;                    // Execution time in the current CPU burst
+  uint tau;                    // Approximation for the next CPU burst length
+  uint time;                   // Execution time in the current CPU burst
 
   int sched_tick;              // Time process spent inside of scheduler
 

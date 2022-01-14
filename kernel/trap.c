@@ -81,7 +81,7 @@ usertrap(void)
   // and the timeslice ran out.
   if(which_dev == 2){
       if ((current_algorithm == 0 && preemptive_sjf) ||
-          (p->timeslice != 0 && p->curr_time >= p->timeslice))
+          (p->timeslice != 0 && ++p->curr_time >= p->timeslice))
           yield();
   }
 
@@ -159,7 +159,7 @@ kerneltrap()
   // and the timeslice ran out.
   if(which_dev == 2 && p != 0 && p->state == RUNNING){
       if ((current_algorithm == 0 && preemptive_sjf) ||
-              (p->timeslice != 0 && p->curr_time >= p->timeslice))
+              (p->timeslice != 0 && ++p->curr_time >= p->timeslice))
           yield();
   }
 
@@ -215,14 +215,6 @@ devintr()
     // forwarded by timervec in kernelvec.S.
 
     if(cpuid() == 0){
-      // Increase curr_time field for every running process on the cpus
-      acquire(&update_time_lock);
-      for (int i = 0; i < NCPU; i++) {
-          if (cpus[i].proc != 0) {
-             ++(cpus[i].proc)->curr_time;
-          }
-      }
-      release(&update_time_lock);
       clockintr();
       if (ticks % 10 == 0)
          aging();

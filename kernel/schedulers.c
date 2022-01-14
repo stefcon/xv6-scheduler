@@ -18,7 +18,7 @@ void swap(struct heapnd* a, struct heapnd* b) {
     *a = tmp;
 }
 
-void heapify_min(struct heapnd *array, int size, int i) {
+void shift_down_min(struct heapnd *array, int size, int i) {
     if (size == 1) {
         return;
     }
@@ -32,12 +32,12 @@ void heapify_min(struct heapnd *array, int size, int i) {
             minimum = right;
         if (minimum != i) {
             swap(&array[i], &array[minimum]);
-            heapify_min(array, size, minimum);
+            shift_down_min(array, size, minimum);
         }
     }
 }
 
-void heapify_max(struct heapnd *array, int size, int i) {
+void shift_down_max(struct heapnd *array, int size, int i) {
     if (size == 1) {
         return;
     }
@@ -51,24 +51,39 @@ void heapify_max(struct heapnd *array, int size, int i) {
             maximum = right;
         if (maximum != i) {
             swap(&array[i], &array[maximum]);
-            heapify_max(array, size, maximum);
+            shift_down_max(array, size, maximum);
         }
+    }
+}
+
+// Efficient information for updating heap when inserting
+void shift_up_min(struct heapnd *array, int i)
+{
+    int parent = (i - 1) / 2;
+    while (i > 0 && array[parent].pr > array[i].pr) {
+
+        // Swap parent and current node
+        swap(&array[parent], &array[i]);
+
+        // Update i to parent of i
+        i = parent;
+        parent = (i - 1) / 2;
     }
 }
 
 void create_min_heap(struct heapnd *array, int n) {
     for (int i = n / 2 - 1; i >= 0; i--)
-        heapify_min(array, n, i);
+        shift_down_min(array, n, i);
 }
 
 void heapsort(struct heapnd *array, int n) {
     for (int i = n / 2 - 1; i >= 0; i--)
-        heapify_max(array, n, i);
+        shift_down_max(array, n, i);
 
     for (int i = n - 1; i > 0; i--) {
         swap(&array[0], &array[i]);
 
-        heapify_max(array, i, 0);
+        shift_down_max(array, i, 0);
     }
 }
 
@@ -82,9 +97,10 @@ void insert(struct heapnd *array, int* size, struct proc* p, int pr) {
         array[*size].pr = pr;
         array[*size].p = p;
         (*size)++;
-        for (int i = *size / 2 - 1; i >= 0; i--) {
-            heapify_min(array, *size, i);
-        }
+//        for (int i = *size / 2 - 1; i >= 0; i--) {
+//            shift_down_min(array, *size, i);
+//        }
+        shift_up_min(array, *size-1);
     }
 }
 
@@ -93,9 +109,7 @@ void delete_root(struct heapnd *array, int* size) {
 
     swap(&array[0], &array[*size-1]);
     (*size)--;
-    for (int i = *size / 2 - 1; i >= 0; i--) {
-        heapify_min(array, *size, i);
-    }
+    shift_down_min(array, *size, 0);
 }
 
 // --------------------------------------------------------------------
@@ -113,9 +127,6 @@ unsigned preemptive_sjf = 0;
 // Constant used for exponential weighted averaging in SJF.
 int alfa = 50;
 
-// To make updating curr_time safe for multicore system
-struct spinlock update_time_lock;
-
 void initsched(void) {
     // Initializing number of processes inside each queue
     for (int i = 0; i < NCPU; i++) {
@@ -124,7 +135,6 @@ void initsched(void) {
     }
     // Initialize scheduler's spinlock
     initlock(&sched_queues.heap_lock, "heap_lock");
-    initlock(&update_time_lock, "update_time_lock");
 }
 
 void aging(void) {
@@ -143,9 +153,9 @@ void aging(void) {
 void put(struct proc* proc){
     acquire(&sched_queues.heap_lock);
     if (proc->affinity != -1) {
-        acquire(&update_time_lock);
+        //acquire(&update_lock);
         proc->time += proc->curr_time;
-        release(&update_time_lock);
+        //release(&update_lock);
     }
     if (proc->state == SLEEPING) {
         // Process came out of suspension, new approximation for tau has to be made

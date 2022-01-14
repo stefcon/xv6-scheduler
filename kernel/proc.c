@@ -484,10 +484,8 @@ scheduler(void)
 
     // Process is done running for now.
     // It should have changed its p->state before coming back.
-    acquire(&update_time_lock);
-    release(&c->proc->lock);
     c->proc = 0;
-    release(&update_time_lock);
+    release(&p->lock);
   }
 }
 
