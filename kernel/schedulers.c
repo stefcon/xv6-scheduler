@@ -169,8 +169,8 @@ void put(struct proc* proc){
 
     int priority;
     if (current_algorithm == 0) {
-        // In SJF, we set tau to be the criteria of choosing next process
-        priority = proc->tau;
+        // In SJF, we set tau to be the criteria for choosing the next process
+        priority = (proc->tau < proc->time)? proc->tau : proc->tau - proc->time;
     }
     else {
         // In CFS, we choose the process that spent the least time running on the CPU, since getting out
